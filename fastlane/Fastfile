@@ -29,7 +29,7 @@ platform :ios do
   
   desc "Submit a new Beta Build to Hockey"
   lane :betaHockey do
-    gym(use_legacy_build_api:true)
+    gym(use_legacy_build_api:true,scheme:”TestPushDown”)
     hockey(api_token: "67c77a7c9c634fd49c52c88409cba9a7",ipa: "TestPushDown.ipa",notes: "TestiOS2"
 )
   end
