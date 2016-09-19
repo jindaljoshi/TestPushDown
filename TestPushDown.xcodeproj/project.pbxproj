@@ -275,9 +275,9 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution: SEI Global Services, Inc.";
 				INFOPLIST_FILE = TestPushDown/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = com.sei.d2c;
+				PRODUCT_BUNDLE_IDENTIFIER = com.seic.testid;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE = "95ad1d03-dfbe-4636-9d5b-f737d769be97";
+				PROVISIONING_PROFILE = "8497bce0-ba22-47e1-8b4e-b5ba35d6063c";
 				SWIFT_OBJC_BRIDGING_HEADER = "TestPushDown/TestPushDown-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -292,9 +292,9 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution: SEI Global Services, Inc.";
 				INFOPLIST_FILE = TestPushDown/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = com.sei.d2c;
+				PRODUCT_BUNDLE_IDENTIFIER = com.seic.testid;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE = "95ad1d03-dfbe-4636-9d5b-f737d769be97";
+				PROVISIONING_PROFILE = "8497bce0-ba22-47e1-8b4e-b5ba35d6063c";
 				SWIFT_OBJC_BRIDGING_HEADER = "TestPushDown/TestPushDown-Bridging-Header.h";
 			};
 			name = Release;

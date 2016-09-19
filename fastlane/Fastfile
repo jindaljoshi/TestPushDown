@@ -1,78 +1,269 @@
-# Customise this file, documentation can be found here:
-# https://github.com/fastlane/fastlane/tree/master/fastlane/docs
-# All available actions: https://github.com/fastlane/fastlane/blob/master/fastlane/docs/Actions.md
-# can also be listed using the `fastlane actions` command
+# Define the minimal Fastlane version
+fastlane_version "1.41.1"
 
-# Change the syntax highlighting to Ruby
-# All lines starting with a # are ignored when running `fastlane`
-
-# If you want to automatically update fastlane if a new version is available:
-# update_fastlane
-
-# This is the minimum version number required.
-# Update this, if you use features of a newer version
-fastlane_version "1.103.0"
-
+# Use the iOS platform as default
 default_platform :ios
 
+# Define what to do for the iOS platform
 platform :ios do
-  before_all do
-    # ENV["SLACK_URL"] = "https://hooks.slack.com/services/..."
-    
-    
-  end
 
-  desc "Runs all the tests"
-  lane :test do
-    scan
-  end
-  
-  desc "Submit a new Beta Build to Hockey"
-  lane :betaHockey do
-  gym(use_legacy_build_api:true)
+# Run this before doing anything else
+before_all do
+
+  # If the GIT status is not clean, abort. We won't want to include junk in the build
+  ensure_git_status_clean
+
 end
 
-  desc "Submit a new Beta Build to Apple TestFlight"
-  desc "This will also make sure the profile is up to date"
-  lane :beta do
-    # match(type: "appstore") # more information: https://codesigning.guide
-    gym # Build your app - more options available
-    pilot
+# After all the steps have completed succesfully, run this.
+after_all do |lane|
 
-    # sh "your_script.sh"
-    # You can also use other beta testing services here (run `fastlane actions`)
-  end
+  # Remove all build artifacts, but keep mobileprovisioning profiles since they are stored in GIT
+  clean_build_artifacts(
+    exclude_pattern: ".*\.mobileprovision"
+  )
 
-  desc "Deploy a new version to the App Store"
-  lane :release do
-    # match(type: "appstore")
-    # snapshot
-    gym # Build your app - more options available
-    deliver(force: true)
-    # frameit
-  end
+  # Reset all changes to the git checkout
+  reset_git_repo(
+    force: true
+  )
 
-  # You can define as many lanes as you want
-
-  after_all do |lane|
-    # This block is called, only if the executed lane was successful
-
-    # slack(
-    #   message: "Successfully deployed new App Update."
-    # )
-  end
-
-  error do |lane, exception|
-    # slack(
-    #   message: exception.message,
-    #   success: false
-    # )
-  end
 end
 
+# If there was an error, run this
+error do |lane, exception|
 
-# More information about multiple platforms in fastlane: https://github.com/fastlane/fastlane/blob/master/fastlane/docs/Platforms.md
-# All available actions: https://github.com/fastlane/fastlane/blob/master/fastlane/docs/Actions.md
+  # Remove all build artifacts, but keep mobileprovisioning profiles since they are stored in GIT
+  clean_build_artifacts(
+    exclude_pattern: ".*\.mobileprovision"
+  )
 
-# fastlane reports which actions are used
-# No personal data is recorded. Learn more at https://github.com/fastlane/enhancer
+  # Reset all changes to the git checkout
+  reset_git_repo(
+    force: true
+  )
+
+end
+
+private_lane :build_app do |options|
+
+  # This part is done only when the app is not for the "production" environment
+  if not options[:release]
+    # Modulate the color of the icons
+    color_icon(
+      modulation: "#{options[:modulation]}"
+    )
+    # Add the build number to the icon
+    build_number_icon
+  end
+
+  # Update the app name
+  app_name(
+    plist_path: "#{options[:project_name]}/Info.plist",
+    app_name: options[:app_name]
+  )
+
+  # Update the app identifier
+  update_app_identifier(
+    xcodeproj: "#{options[:project_name]}.xcodeproj",
+    plist_path: "#{options[:project_name]}/Info.plist",
+    app_identifier: options[:app_identifier]
+  )
+
+  # Install the certificate
+  import_certificate(
+    certificate_path: options[:certificate_path],
+    certificate_password: options[:certificate_password],
+    keychain_name: "login.keychain"
+  )
+
+  # Install the provisioning profile
+  update_project_provisioning(
+    xcodeproj: "#{options[:project_name]}.xcodeproj",
+    profile: options[:profile]
+  )
+
+  # Version bump
+  increment_build_number(
+    build_number: options[:build_number]
+  )
+
+  # Build the app
+  gym(
+    scheme: "#{options[:scheme]}",
+    configuration: options[:configuration],
+    provisioning_profile_path: options[:profile],
+    codesigning_identity: options[:codesigning_identity],
+    export_method: options[:export_method]
+  )
+
+end
+
+# Publish to Testflight
+private_lane :publish_testflight do |options|
+
+  # Generate a changelog with GIT since the last successful build in Jenkins
+  changelog = sh("git log --graph --pretty=format:'%h -%d %s <%an>' --abbrev-commit #{ENV['GIT_PREVIOUS_SUCCESSFUL_COMMIT'] || 'HEAD^^^^^'}..HEAD")
+
+  # Send the app to Testflight
+  pilot(
+    changelog: "#{changelog.to_s}"
+  )
+end
+
+# Publish to Hockeyapp
+private_lane :publish_hockey do |options|
+
+  # Generate a changelog with GIT since the last successful build in Jenkins
+  changelog = sh("git log --graph --pretty=format:'%h -%d %s <%an>' --abbrev-commit #{ENV['GIT_PREVIOUS_SUCCESSFUL_COMMIT'] || 'HEAD^^^^^'}..HEAD")
+
+  # Send the app to Hockeyapp (fill in your API token!)
+  hockey(
+    api_token: "67c77a7c9c634fd49c52c88409cba9a7",
+    notes: "#{changelog.to_s}",
+    release_type: options[:release_type]
+  )
+end
+
+# Publish to the AppStore
+private_lane :publish_appstore do |options|
+  deliver(force: true)
+end
+
+# Build and publish the Alpha version to Hockeyapp
+lane :alpha_hockeyapp do
+  # Build
+  build_app(
+    # Not a production release, so add build number and do the color modulation of the icons
+    release:false,
+    # Modulate the colors of the icons by these degrees
+    modulation:66.6,
+    # Change the app name
+    app_name:"FastlaneDemo α",
+    # Set the app id
+    app_identifier:"com.seic.testid",
+    # Set the path to the certificate to use in building
+    certificate_path:"./fastlane/certs/Certificates.p12",
+    # Set the password of the p12 certificate file
+    certificate_password:"1234",
+    # Set the path to the provisioning profile to use (change this!)
+    profile:"./fastlane/certs/Test_Dist.mobileprovision",
+    # What configuration to use, usefull for keeping different API keys etc between environments
+    configuration:"Alpha",
+    # Use this codesigning identity (this is the name of the certificate in your keychain)
+    codesigning_identity:"iPhone Distribution: SEI Global Services, Inc.",
+    # Export an enterprise app
+    export_method:"enterprise",
+    # the projectname, this is the name of the .xcodeproj file and the folder containing your code in the project
+    project_name:"TestPushDown",
+    # the scheme to build
+    scheme:"TestPushDown",
+    # the build number to use, we use the build number from Jenkins
+    build_number: ENV["BUILD_NUMBER"]
+  )
+  # Push to Hockeyapp as Alpha release
+  publish_hockey(release_type: "2")
+end
+
+# Build and publish the Beta version to Hockeyapp
+lane :beta_hockeyapp do
+  # Build
+  build_app(
+    # Not a production release, so add build number and do the color modulation of the icons
+    release:false,
+    # Modulate the colors of the icons by these degrees
+    modulation:166.6,
+    # Change the app name
+    app_name:"FastlaneDemo β",
+    # Set the app id
+    app_identifier:"com.seic.testid",
+    # Set the path to the certificate to use in building
+    certificate_path:"./fastlane/certs/<your key>.p12",
+    # Set the password of the p12 certificate file
+    certificate_password:"<your p12 password>",
+    # Set the path to the provisioning profile to use (change this!)
+    profile:"./fastlane/certs/KunstmaanLabsFastlaneDemoApp_Beta.mobileprovision",
+    # What configuration to use, usefull for keeping different API keys etc between environments
+    configuration:"Beta",
+    # Use this codesigning identity (this is the name of the certificate in your keychain)
+    codesigning_identity:"iPhone Distribution: Kunstmaan NV",
+    # Export an enterprise app
+    export_method:"enterprise",
+    # the projectname, this is the name of the .xcodeproj file and the folder containing your code in the project
+    project_name:"KunstmaanLabsFastlaneDemoApp",
+    # the scheme to build
+    scheme:"KunstmaanLabsFastlaneDemoApp",
+    # the build number to use, we use the build number from Jenkins
+    build_number: ENV["BUILD_NUMBER"]
+  )
+  # Push to Hockeyapp as Beta release
+  publish_hockey(release_type: "0")
+end
+
+# Build and publish the Release version to Hockeyapp
+lane :release_hockeyapp do
+  # Build
+  build_app(
+    # Not a production release, so add build number and do the color modulation of the icons
+    release:true,
+    # Change the app name
+    app_name:"FastlaneDemo",
+    # Set the app id
+    app_identifier:"com.seic.testid",
+    # Set the path to the certificate to use in building
+    certificate_path:"./fastlane/certs/<your key>.p12",
+    # Set the password of the p12 certificate file
+    certificate_password:"<your p12 password>",
+    # Set the path to the provisioning profile to use (change this!)
+    profile:"./fastlane/certs/KunstmaanLabsFastlaneDemoApp_Release.mobileprovision",
+    # What configuration to use, usefull for keeping different API keys etc between environments
+    configuration:"Release",
+    # Use this codesigning identity (this is the name of the certificate in your keychain)
+    codesigning_identity:"iPhone Distribution: Kunstmaan NV",
+    # Export an enterprise app
+    export_method:"enterprise",
+    # the projectname, this is the name of the .xcodeproj file and the folder containing your code in the project
+    project_name:"KunstmaanLabsFastlaneDemoApp",
+    # the scheme to build
+    scheme:"KunstmaanLabsFastlaneDemoApp",
+    # the build number to use, we use the build number from Jenkins
+    build_number: ENV["BUILD_NUMBER"]
+  )
+  # Push to Hockeyapp as Enterprise release
+  publish_hockey(release_type: "3")
+end
+
+# Build and publish the Release version to the AppStore
+lane :release_appstore do
+  # Build
+  build_app(
+    # Not a production release, so add build number and do the color modulation of the icons
+    release:true,
+    # Change the app name
+    app_name:"FastlaneDemo",
+    # Set the app id
+    app_identifier:"com.seic.testid",
+    # Set the path to the certificate to use in building
+    certificate_path:"./fastlane/certs/<your key>.p12",
+    # Set the password of the p12 certificate file
+    certificate_password:"<your p12 password>",
+    # Set the path to the provisioning profile to use (change this!)
+    profile:"./fastlane/certs/KunstmaanLabsFastlaneDemoApp_Release.mobileprovision",
+    # What configuration to use, usefull for keeping different API keys etc between environments
+    configuration:"Release",
+    # Use this codesigning identity (this is the name of the certificate in your keychain)
+    codesigning_identity:"iPhone Distribution: Kunstmaan NV",
+    # Export an enterprise app
+    export_method:"app-store",
+    # the projectname, this is the name of the .xcodeproj file and the folder containing your code in the project
+    project_name:"KunstmaanLabsFastlaneDemoApp",
+    # the scheme to build
+    scheme:"KunstmaanLabsFastlaneDemoApp",
+    # the build number to use, we use the build number from Jenkins
+    build_number: ENV["BUILD_NUMBER"]
+  )
+  # Push to the appstore
+  publish_appstore
+end
+
+end
