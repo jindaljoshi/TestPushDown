@@ -1,4 +1,4 @@
-app_identifier "com.sei.d2c" # The bundle identifier of your app
+app_identifier "com.seic.testid" # The bundle identifier of your app
 apple_id "jjoshi@seic.com" # Your Apple email address
 
 team_id "83WWQUVA7C"  # Developer Portal Team ID
