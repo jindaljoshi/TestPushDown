@@ -277,7 +277,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.seic.testid;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE = "$(sign_tools.fastlane.app_development)";
+				PROVISIONING_PROFILE = "8497bce0-ba22-47e1-8b4e-b5ba35d6063c";
 				SWIFT_OBJC_BRIDGING_HEADER = "TestPushDown/TestPushDown-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -294,7 +294,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.seic.testid;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE = "$(sign_tools.fastlane.app_development)";
+				PROVISIONING_PROFILE = "8497bce0-ba22-47e1-8b4e-b5ba35d6063c";
 				SWIFT_OBJC_BRIDGING_HEADER = "TestPushDown/TestPushDown-Bridging-Header.h";
 			};
 			name = Release;
