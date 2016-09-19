@@ -10,8 +10,6 @@ platform :ios do
 # Run this before doing anything else
 before_all do
 
-  # If the GIT status is not clean, abort. We won't want to include junk in the build
-  ensure_git_status_clean
 
 end
 
@@ -24,9 +22,7 @@ after_all do |lane|
   )
 
   # Reset all changes to the git checkout
-  reset_git_repo(
-    force: true
-  )
+  
 
 end
 
@@ -39,9 +35,7 @@ error do |lane, exception|
   )
 
   # Reset all changes to the git checkout
-  reset_git_repo(
-    force: true
-  )
+  
 
 end
 
@@ -83,10 +77,6 @@ private_lane :build_app do |options|
     profile: options[:profile]
   )
 
-  # Version bump
-  increment_build_number(
-    build_number: options[:build_number]
-  )
 
   # Build the app
   gym(
@@ -102,9 +92,6 @@ end
 # Publish to Testflight
 private_lane :publish_testflight do |options|
 
-  # Generate a changelog with GIT since the last successful build in Jenkins
-  changelog = sh("git log --graph --pretty=format:'%h -%d %s <%an>' --abbrev-commit #{ENV['GIT_PREVIOUS_SUCCESSFUL_COMMIT'] || 'HEAD^^^^^'}..HEAD")
-
   # Send the app to Testflight
   pilot(
     changelog: "#{changelog.to_s}"
@@ -114,13 +101,10 @@ end
 # Publish to Hockeyapp
 private_lane :publish_hockey do |options|
 
-  # Generate a changelog with GIT since the last successful build in Jenkins
-  changelog = sh("git log --graph --pretty=format:'%h -%d %s <%an>' --abbrev-commit #{ENV['GIT_PREVIOUS_SUCCESSFUL_COMMIT'] || 'HEAD^^^^^'}..HEAD")
-
   # Send the app to Hockeyapp (fill in your API token!)
   hockey(
     api_token: "67c77a7c9c634fd49c52c88409cba9a7",
-    notes: "#{changelog.to_s}",
+    notes: "testasads",
     release_type: options[:release_type]
   )
 end
@@ -158,8 +142,6 @@ lane :alpha_hockeyapp do
     project_name:"TestPushDown",
     # the scheme to build
     scheme:"TestPushDown",
-    # the build number to use, we use the build number from Jenkins
-    build_number: ENV["BUILD_NUMBER"]
   )
   # Push to Hockeyapp as Alpha release
   publish_hockey(release_type: "2")
