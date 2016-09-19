@@ -11,7 +11,7 @@
 
 # This is the minimum version number required.
 # Update this, if you use features of a newer version
-fastlane_version "1.102.0"
+fastlane_version "1.103.0"
 
 default_platform :ios
 
@@ -29,10 +29,8 @@ platform :ios do
   
   desc "Submit a new Beta Build to Hockey"
   lane :betaHockey do
-    gym(use_legacy_build_api:true)
-    hockey(api_token: "67c77a7c9c634fd49c52c88409cba9a7",ipa: "TestPushDown.ipa",notes: "TestiOSJenkins”
-)
-  end
+  gym(use_legacy_build_api:true)
+end
 
   desc "Submit a new Beta Build to Apple TestFlight"
   desc "This will also make sure the profile is up to date"
